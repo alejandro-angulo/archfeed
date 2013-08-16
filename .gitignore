@@ -1,0 +1,9 @@
+# Compiled Source #
+*.o
+
+# Binary #
+archfeed
+
+# Misc #
+news
+test
