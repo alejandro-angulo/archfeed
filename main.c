@@ -20,7 +20,7 @@ static void print_help (char *program) {
   printf("\tspecify download location\n");
   printf("\t  default location is ./news\n\n");
   printf("-l --local\n");
-  printf("\tdo not download news\n\n");
+  printf("\tdo not download news (use local copy)\n\n");
   printf("-o --online\n");
   printf("\tdownload news (default)\n\n");
   printf("-v --verbose\n");
