@@ -31,16 +31,21 @@ static void parseHTML(char *value) {
       if (!strcmp(tok, "/p")) {
         printf("\n");
       }
-      else if (!strcmp(tok, "code")) {
+      else if (!strcmp(tok, "code") && flags.color) {
         fputs(GRN, stdout);
       }
-      else if (!strcmp(tok, "/code")) {
+      else if (!strcmp(tok, "/code") && flags.color) {
         fputs(NRM, stdout);
       }
       else if ((ptr = strstr(tok, "/a"))) {
         if (link) {
           link[strlen(link) - 1] = '\0';
-          printf(CYN " <%s> " NRM, link);
+          if (flags.color) {
+            printf(CYN " <%s> " NRM, link);
+          }
+          else {
+            printf(" <%s> " , link);
+          }
         }
       }
       else if ((link = strstr(tok, "http"))) {
@@ -92,14 +97,25 @@ static void processEntry (xmlTextReaderPtr reader) {
     xmlTextReaderRead(reader);
     value = xmlTextReaderConstValue(reader);
     if (!strcmp(nodes[i], nodes[0])) {
-     printf(YEL "%s\n", value);
+      if (flags.color) { 
+        printf(YEL "%s\n", value);
+      }
+      else {
+        printf("%s\n", value);
+      }
     }
     else if (!strcmp(nodes[i], nodes[1])) {
-     printf(CYN "%s\n", value);
+      if (flags.color) {
+      }
+      else {
+        printf("%s\n", value);
+      }
     }
     else if (!strcmp(nodes[i], nodes[2])) {
-     printf(NRM);
-     parseHTML((char *) value);
+      if (flags.color) {
+        printf(NRM);
+      }
+      parseHTML((char *) value);
     } 
     xmlTextReaderRead(reader);
 
@@ -107,17 +123,17 @@ static void processEntry (xmlTextReaderPtr reader) {
 }
 
 /* Parse and print information about an XML file. */
-static void streamFile (const char *filename, unsigned short entries) {
+static void streamFile () {
   xmlTextReaderPtr reader;
   int ret;
   unsigned short i = 0;  // entries counter
 
-  reader = xmlReaderForFile(filename, NULL, 0);
+  reader = xmlReaderForFile(flags.outfilename, NULL, 0);
   if (reader != NULL) {
     ret = xmlTextReaderRead(reader);
     
-    if (entries) {                    // there has to be a better way
-      while (ret == 1 && i < entries) {
+    if (flags.entries) {  // there's probably a better way
+      while (ret == 1 && i < flags.entries) {
         processEntry(reader);
         ret = xmlTextReaderRead(reader);
         i++;
@@ -134,16 +150,16 @@ static void streamFile (const char *filename, unsigned short entries) {
     
     if (ret == -1) {  // if error encountered
       printf("%d\n", ret);
-      fprintf(stderr, "%s : failed to parse\n", filename);
+      fprintf(stderr, "%s : failed to parse\n", flags.outfilename);
     }
   }
   else {
-    fprintf(stderr, "Unable to open %s\n", filename);
+    fprintf(stderr, "Unable to open %s\n", flags.outfilename);
   }
 }
 
-void parse (char *filename, unsigned short entries) {
-  streamFile(filename, entries);
+void parse () {
+  streamFile();
 
   xmlCleanupParser();
   xmlMemoryDump();

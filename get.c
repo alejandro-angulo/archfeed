@@ -14,6 +14,10 @@ struct myprogress {
 static int xferinfo (void *ptr,
                      curl_off_t dltotal, curl_off_t dlnow,
                      curl_off_t ultotal, curl_off_t ulnow) {
+  // Get terminal length
+  struct winsize term;
+  ioctl(1, TIOCGWINSZ, &term);  // 1 == stdout
+
   // Subtract 7 from term.ws_col to account for
   // the space surrounding the loading bar ("xxx% [" and the ending "]")
   int    bar_len = term.ws_col - 7;
@@ -60,8 +64,7 @@ static size_t write_data (void *ptr, size_t size, size_t nmemb, FILE *stream) {
   return written;
 }
 
-void download (const FILE *fp, const char *outfilename,
-               struct winsize *term) {
+void download (const FILE *fp) {
   CURL *curl;
   CURLcode res = CURLE_OK;
   struct myprogress prog;

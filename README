@@ -1,30 +1,36 @@
-archfeed is a CLI news fetcher for Arch Linux
-
-Usage: archfeed [OPTIONS]
+Usage: ./archfeed [OPTION]
 
 -b --brief
-  do not  print news
+	do not print news
+
+-c --color
+	colorize output
+	  set when STDOUT detected as being a terminal
 
 -d --display [INTEGER]
-  specify number of entries to display (newest first)
-    use 0 to display all entries (default)
-    use -b if you do not want to display any entries
+	specify number of entries to display (newest first)
+	  use 0 to display all entries (default)
+	  use -b if you do not want to display any entries
 
 -f --file [FILE]
-  specify download location
-    default location is ./news
+	specify download location
+	  default location is ./news
 
 -l --local
-  do not download news (use local copy)
+	do not download news (use local copy)
+
+-n --nocolor
+	do not colorize output
+	  set when STDOUT is detected as not being a terminal
 
 -o --online
-  download news (default)
+	download news (default)
 
 -v --verbose
-  print news (default)
+	print news (default)
 
 -h --help
-  display this message and exit
+	display this message and exit
 
 -----------------------------------------------------------
 

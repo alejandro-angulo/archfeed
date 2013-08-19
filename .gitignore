@@ -4,6 +4,9 @@
 # Binary #
 archfeed
 
+# Backups #
+*.swp
+
 # Misc #
 news
 test
