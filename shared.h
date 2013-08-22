@@ -1,8 +1,9 @@
 typedef struct {
   int  color;
-  int  verbose;
-  int  online;
   int  entries;
+  int  poll;
+  int  update;
+  int  verbose;
   char outfilename[255]; 
 } args;
 

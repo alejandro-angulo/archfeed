@@ -37,6 +37,9 @@ static void parseHTML(char *value) {
       else if (!strcmp(tok, "/code") && flags.color) {
         fputs(NRM, stdout);
       }
+      else if (!strcmp(tok, "li")) {
+        fputs("\t", stdout);
+      }
       else if ((ptr = strstr(tok, "/a"))) {
         if (link) {
           link[strlen(link) - 1] = '\0';

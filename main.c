@@ -5,8 +5,10 @@
 #include <getopt.h>
 #include "get.h"
 #include "parse.h"
+#include "check.h"
 #include "shared.h"
 
+/* Help Message */
 static void print_help (char *program) {
   printf("Usage: %s [OPTION]\n\n", program);
   printf("-b --brief\n");
@@ -26,7 +28,12 @@ static void print_help (char *program) {
   printf("-n --nocolor\n");
   printf("\tdo not colorize output\n");
   printf("\t  set when STDOUT is detected as not being a terminal\n\n");
-  printf("-o --online\n");
+  printf("-o --force\n");
+  printf("\trun program without checking for new entries\n\n");
+  printf("-p --poll\n");
+  printf("\tissue header request and compare timestamps before proceeding\n");
+  printf("\t  program exits if there are no new entries (default)\n\n");
+  printf("-u --update\n");
   printf("\tdownload news (default)\n\n");
   printf("-v --verbose\n");
   printf("\tprint news (default)\n\n");
@@ -35,15 +42,16 @@ static void print_help (char *program) {
   exit(1);
 }
 
-args flags;
+args flags; // initialize global struct to hold flags
 
 int main (int argc, char *argv[]) {
   FILE *fp;
   
   // Assign default values for flags
-  flags.verbose = 1;
-  flags.online  = 1;
   flags.entries = 0;
+  flags.poll    = 1;
+  flags.update  = 1;
+  flags.verbose = 1;
   strcpy(flags.outfilename, "news");
   
   /* Command line arguments */
@@ -56,7 +64,6 @@ int main (int argc, char *argv[]) {
     flags.color = 0;
   }
 
-
   int opt_index;
   int opt;
 
@@ -68,14 +75,16 @@ int main (int argc, char *argv[]) {
         {"colorize",0, &flags.color  ,   1},  // -c
         {"display", 1, 0             , 'd'},  // -d
         {"file",    1, 0             , 'f'},  // -f
+        {"force",   0, &flags.poll   ,   0},  // -o
         {"help",    0, 0             , 'h'},  // -h
-        {"local",   0, &flags.online ,   0},  // -l
+        {"local",   0, &flags.update ,   0},  // -l
+        {"poll",    0, &flags.poll   ,   1},  // -p
         {"nocolor", 0, &flags.color  ,   0},  // -n
-        {"online",  0, &flags.online ,   1},  // -o
+        {"update",  0, &flags.update ,   1},  // -o
         {"verbose", 0, &flags.verbose,   1},  // -v
       };
     
-    opt = getopt_long (argc, argv, "bcd:f:lnohvw", long_opts, &opt_index);
+    opt = getopt_long (argc, argv, "bcd:f:lnophvw", long_opts, &opt_index);
 
     if (opt == -1) {  // Done reading options.
       break;
@@ -83,7 +92,7 @@ int main (int argc, char *argv[]) {
 
     switch (opt)
       {
-        case 0: // flag
+        case 0:
           if (long_opts[opt_index].flag != 0) {
             break;
           }
@@ -110,13 +119,20 @@ int main (int argc, char *argv[]) {
           print_help(argv[0]);
           break;
         case 'l': // --local
-          flags.online = 0;
+          flags.poll   = 0;
+          flags.update = 0;
           break;
         case 'n': // --nocolor
           flags.color = 0;
           break;
-        case 'o': // --online
-          flags.online = 1;
+        case 'o': // --force
+          flags.poll = 0;
+          break;
+        case 'p': // --poll
+          flags.poll = 1;
+          break;
+        case 'u': // --update
+          flags.update = 1;
           break;
         case 'v': // --verbose
           flags.verbose = 1;
@@ -130,7 +146,14 @@ int main (int argc, char *argv[]) {
   }
 
   /* Run */
-  if (flags.online) {  
+  if (flags.poll) {
+    if(!check()) {
+      printf("No new entries.\n");
+      return 0;
+    }
+  }
+
+  if (flags.update) {  
     fp = fopen(flags.outfilename, "w+b");
     if (fp == NULL) {
       perror("Error");
@@ -142,11 +165,11 @@ int main (int argc, char *argv[]) {
       printf("Writing to <%s> will fail.\n", flags.outfilename);
       exit(1);
     }
-
     download(fp);
     fclose(fp);
     printf("\n");
   }
+
   if (flags.verbose) {
     parse();
   }

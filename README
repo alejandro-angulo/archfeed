@@ -23,7 +23,14 @@ Usage: ./archfeed [OPTION]
 	do not colorize output
 	  set when STDOUT is detected as not being a terminal
 
--o --online
+-o --force
+	run program without checking for new entries
+
+-p --poll
+	issue header request and compare timestamps before proceeding
+	  program exits if there are no new entries (default)
+
+-u --update
 	download news (default)
 
 -v --verbose
@@ -32,6 +39,10 @@ Usage: ./archfeed [OPTION]
 -h --help
 	display this message and exit
 
------------------------------------------------------------
+-------------------------------------------------------------------------------
 
-This is my first project. I know it sucks.
+This code is pretty limited right now. The URL is hardcoded to:
+  https://www.archlinux.org/feeds/news/
+
+I'm sure there is a good amount of mistakes (this is my first project after
+all).

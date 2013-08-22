@@ -1,3 +1,9 @@
+/*
+  MIGHT BE MAKING THIS TOO COMPLICATED
+  HEADER RESPONSE WILL INCLUDE A LAST-MODIFIED TIMESTAMP <curl -I URL>
+  FIGURE OUT HOW TO GET RELEVANT INFO USING C
+*/
+
 #include <math.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -11,6 +17,8 @@ struct myprogress {
   CURL *curl;
 };
 
+/* Transeferinfo  function for libcurl */
+/* Used for progress bar */
 static int xferinfo (void *ptr,
                      curl_off_t dltotal, curl_off_t dlnow,
                      curl_off_t ultotal, curl_off_t ulnow) {
@@ -49,6 +57,8 @@ static int xferinfo (void *ptr,
   return 0;
 }
 
+/* Transeferinfo function for older versions of libcurl */
+/* Casts arguments to correct type for xferinfo (above) */
 static int older_progress (void *ptr,
                            double dltotal, double dlnow,
                            double ultotal, double ulnow) {
@@ -64,6 +74,7 @@ static size_t write_data (void *ptr, size_t size, size_t nmemb, FILE *stream) {
   return written;
 }
 
+/* Initializes libcurl settings and calls functions neccesary to download file */
 void download (const FILE *fp) {
   CURL *curl;
   CURLcode res = CURLE_OK;
@@ -102,3 +113,4 @@ void download (const FILE *fp) {
     fputs("Failed to begin libcurl session.\n", stdout);
   }
 }
+
