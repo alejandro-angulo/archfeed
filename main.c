@@ -22,7 +22,7 @@ static void print_help (char *program) {
   printf("\t  use -b if you do not want to display any entries\n\n");
   printf("-f --file [FILE]\n");
   printf("\tspecify download location\n");
-  printf("\t  default location is ./news\n\n");
+  printf("\t  default location is /var/cache/archfeed/newss\n\n");
   printf("-l --local\n");
   printf("\tdo not download news (use local copy)\n\n");
   printf("-n --nocolor\n");
@@ -52,7 +52,7 @@ int main (int argc, char *argv[]) {
   flags.poll    = 1;
   flags.update  = 1;
   flags.verbose = 1;
-  strcpy(flags.outfilename, "news");
+  strcpy(flags.outfilename, "/var/cache/archfeed/news");
   
   /* Command line arguments */
   // Check if output is a terminal

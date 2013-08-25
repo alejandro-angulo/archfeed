@@ -44,10 +44,10 @@ static void parseHTML(char *value) {
         if (link) {
           link[strlen(link) - 1] = '\0';
           if (flags.color) {
-            printf(CYN " <%s> " NRM, link);
+            printf(CYN " <%s>" NRM, link);
           }
           else {
-            printf(" <%s> " , link);
+            printf(" <%s>" , link);
           }
         }
       }
