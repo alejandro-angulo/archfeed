@@ -14,8 +14,53 @@ struct MemoryStruct {
   size_t size;
 };
 
-static size_t
-WriteMemoryCallback (void *contents, size_t size, size_t nmemb, void *userp) {
+static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
+                                   void *user);
+static int comparison             (char *memory);
+
+/* Checks if a new entry was added since last update              */
+/* Compares lastBuildDate entry to timestamp on /var/cache/pacman */
+int check () {
+  CURL *curl_handle;
+  CURLcode res;
+
+  int update = 0; // Set flag to indicate if an update was found
+
+  struct MemoryStruct chunk;
+
+  chunk.memory = malloc(1); // Will grow later
+  chunk.size   = 0;         // No data yet
+
+  curl_global_init(CURL_GLOBAL_ALL);
+
+  curl_handle = curl_easy_init();
+  curl_easy_setopt(curl_handle, CURLOPT_URL, "https://www.archlinux.org/feeds/news/");
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *) &chunk);
+  // Make a header request
+  curl_easy_setopt(curl_handle, CURLOPT_HEADER, 1);
+  curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1);
+
+  // Get
+  res = curl_easy_perform(curl_handle);
+  if (res != CURLE_OK) {
+    fprintf(stderr, "curl_easy_perform() failed %s\n", curl_easy_strerror(res));
+  }
+  // Process data
+  else {
+    update = comparison(chunk.memory);
+  }
+
+  curl_easy_cleanup(curl_handle);
+  if (chunk.memory) {
+    free(chunk.memory);
+  }
+
+  return update;
+}
+
+static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
+                                   void *userp) {
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *) userp;
 
@@ -65,43 +110,3 @@ static int comparison (char *memory) {
   return 0;
 }
 
-/* Checks if a new entry was added since last update              */
-/* Compares lastBuildDate entry to timestamp on /var/cache/pacman */
-int check () {
-  CURL *curl_handle;
-  CURLcode res;
-
-  int update = 0; // Set flag to indicate if an update was found
-
-  struct MemoryStruct chunk;
-
-  chunk.memory = malloc(1); // Will grow later
-  chunk.size   = 0;         // No data yet
-
-  curl_global_init(CURL_GLOBAL_ALL);
-
-  curl_handle = curl_easy_init();
-  curl_easy_setopt(curl_handle, CURLOPT_URL, "https://www.archlinux.org/feeds/news/");
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *) &chunk);
-  // Make a header request
-  curl_easy_setopt(curl_handle, CURLOPT_HEADER, 1);
-  curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1);
-
-  // Get
-  res = curl_easy_perform(curl_handle);
-  if (res != CURLE_OK) {
-    fprintf(stderr, "curl_easy_perform() failed %s\n", curl_easy_strerror(res));
-  }
-  // Process data
-  else {
-    update = comparison(chunk.memory);
-  }
-
-  curl_easy_cleanup(curl_handle);
-  if (chunk.memory) {
-    free(chunk.memory);
-  }
-
-  return update;
-}

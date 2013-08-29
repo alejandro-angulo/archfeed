@@ -26,7 +26,9 @@ static void print_help (char *program) {
   printf("-l --local\n");
   printf("\tdo not download news (use local copy)\n\n");
   printf("-n --nocolor\n");
-  printf("\tdo not colorize output\n");
+  printf("\tdo not colorize output\n\n");
+  printf("-r --nowrap\n");
+  printf("\tdo not wrap output\n");
   printf("\t  set when STDOUT is detected as not being a terminal\n\n");
   printf("-o --force\n");
   printf("\trun program without checking for new entries\n\n");
@@ -37,8 +39,11 @@ static void print_help (char *program) {
   printf("\tdownload news (default)\n\n");
   printf("-v --verbose\n");
   printf("\tprint news (default)\n\n");
+  printf("-w --wrap\n");
+  printf("\twrapoutput\n");
+  printf("\t  set when STDOUT is detected as being a terminal\n\n");
   printf("-h --help\n");
-  printf("\tdisplay this message and exit\n\n");
+  printf("\tdisplay this message and exit\n");
   exit(1);
 }
 
@@ -56,12 +61,14 @@ int main (int argc, char *argv[]) {
   
   /* Command line arguments */
   // Check if output is a terminal
-  // Set color flag accordingly
+  // Set flags accordingly
   if (isatty(1)) {  // 1 == stdout
     flags.color = 1;
+    flags.wrap  = 1;
   }
   else {
     flags.color = 0;
+    flags.wrap  = 0;
   }
 
   int opt_index;
@@ -80,11 +87,13 @@ int main (int argc, char *argv[]) {
         {"local",   0, &flags.update ,   0},  // -l
         {"poll",    0, &flags.poll   ,   1},  // -p
         {"nocolor", 0, &flags.color  ,   0},  // -n
+        {"nowrap",  0, &flags.wrap   ,   0},  // -r
         {"update",  0, &flags.update ,   1},  // -o
         {"verbose", 0, &flags.verbose,   1},  // -v
+        {"wrap",    0, &flags.wrap   ,   1},  // -w
       };
     
-    opt = getopt_long (argc, argv, "bcd:f:lnophvw", long_opts, &opt_index);
+    opt = getopt_long (argc, argv, "bcd:f:lnoprhvw", long_opts, &opt_index);
 
     if (opt == -1) {  // Done reading options.
       break;
@@ -131,11 +140,17 @@ int main (int argc, char *argv[]) {
         case 'p': // --poll
           flags.poll = 1;
           break;
+        case 'r': // --nowrap
+          flags.wrap = 0;
+          break;
         case 'u': // --update
           flags.update = 1;
           break;
         case 'v': // --verbose
           flags.verbose = 1;
+          break;
+        case 'w': // --wrap
+          flags.wrap = 1;
           break;
         case '?':
           print_help(argv[0]);
@@ -170,9 +185,8 @@ int main (int argc, char *argv[]) {
     printf("\n");
   }
 
-  if (flags.verbose) {
+  if (flags.verbose)
     parse();
-  }
 
   return 0;
 }

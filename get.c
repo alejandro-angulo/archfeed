@@ -1,9 +1,3 @@
-/*
-  MIGHT BE MAKING THIS TOO COMPLICATED
-  HEADER RESPONSE WILL INCLUDE A LAST-MODIFIED TIMESTAMP <curl -I URL>
-  FIGURE OUT HOW TO GET RELEVANT INFO USING C
-*/
-
 #include <math.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -17,62 +11,11 @@ struct myprogress {
   CURL *curl;
 };
 
-/* Transeferinfo  function for libcurl */
-/* Used for progress bar */
-static int xferinfo (void *ptr,
-                     curl_off_t dltotal, curl_off_t dlnow,
-                     curl_off_t ultotal, curl_off_t ulnow) {
-  // Get terminal length
-  struct winsize term;
-  ioctl(1, TIOCGWINSZ, &term);  // 1 == stdout
-
-  // Subtract 7 from term.ws_col to account for
-  // the space surrounding the loading bar ("xxx% [" and the ending "]")
-  int    bar_len = term.ws_col - 7;
-  int    bar_full;
-  int    i;
-  double frac_down;
-
-
-  if (dlnow == 0) {
-    frac_down = 0;
-    bar_full = 0;
-  }
-  else {
-    frac_down = (double) dlnow / (double) dltotal;
-    bar_full = round(frac_down * bar_len);
-  }
-
-  printf("%3.0f%% [", frac_down * 100);
-  for (i = 0; i < bar_full; i++) {
-    printf("=");
-  }
-  for ( ; i < bar_len; i++) {
-    printf(" ");
-  }
-
-  printf("]\r");
-  fflush(stdout);
-
-  return 0;
-}
-
-/* Transeferinfo function for older versions of libcurl */
-/* Casts arguments to correct type for xferinfo (above) */
-static int older_progress (void *ptr,
-                           double dltotal, double dlnow,
-                           double ultotal, double ulnow) {
-  return xferinfo(ptr,
-                  (curl_off_t) dltotal,
-                  (curl_off_t) dlnow,
-                  (curl_off_t) ultotal,
-                  (curl_off_t) ulnow);
-}
-
-static size_t write_data (void *ptr, size_t size, size_t nmemb, FILE *stream) {
-  size_t written = fwrite(ptr, size, nmemb, stream);
-  return written;
-}
+static int xferinfo       (void *ptr, curl_off_t dltotal, curl_off_t dlnow,
+                           curl_off_t ultotal, curl_off_t ulnow);
+static int older_progress (void *ptr, double dltotal, double dlnow,
+                           double ultotal, double ulnow);
+static size_t write_data  (void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 /* Initializes libcurl settings and calls functions neccesary to download file */
 void download (const FILE *fp) {
@@ -101,16 +44,71 @@ void download (const FILE *fp) {
     curl_easy_setopt(curl ,CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
     
-    if ((res = curl_easy_perform(curl))) {
+    if ((res = curl_easy_perform(curl)))
       printf("%s\n", curl_easy_strerror(res));
-    }
-    else {
+    else
       curl_easy_cleanup(curl);
-    }
 
   }
   else {
     fputs("Failed to begin libcurl session.\n", stdout);
   }
+}
+
+/* Transeferinfo  function for libcurl */
+/* Used for progress bar               */
+static int xferinfo (void *ptr,
+                     curl_off_t dltotal, curl_off_t dlnow,
+                     curl_off_t ultotal, curl_off_t ulnow) {
+  // Get terminal length
+  struct winsize term;
+  ioctl(1, TIOCGWINSZ, &term);  // 1 == stdout
+
+  // Subtract 7 from term.ws_col to account for
+  // the space surrounding the loading bar ("xxx% [" and the ending "]")
+  int    bar_len = term.ws_col - 7;
+  int    bar_full;
+  int    i;
+  double frac_down;
+
+
+  if (dlnow == 0) {
+    frac_down = 0;
+    bar_full  = 0;
+  }
+  else {
+    frac_down = (double) dlnow / (double) dltotal;
+    bar_full = round(frac_down * bar_len);
+  }
+
+  printf("%3.0f%% [", frac_down * 100);
+
+  for (i = 0; i < bar_full; i++)
+    printf("=");
+
+  for ( ; i < bar_len; i++)
+    printf(" ");
+
+  printf("]\r");
+  fflush(stdout);
+
+  return 0;
+}
+
+/* Transeferinfo function for older versions of libcurl */
+/* Casts arguments to correct type for xferinfo (above) */
+static int older_progress (void *ptr,
+                           double dltotal, double dlnow,
+                           double ultotal, double ulnow) {
+  return xferinfo(ptr,
+                  (curl_off_t) dltotal,
+                  (curl_off_t) dlnow,
+                  (curl_off_t) ultotal,
+                  (curl_off_t) ulnow);
+}
+
+static size_t write_data (void *ptr, size_t size, size_t nmemb, FILE *stream) {
+  size_t written = fwrite(ptr, size, nmemb, stream);
+  return written;
 }
 

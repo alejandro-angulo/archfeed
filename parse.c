@@ -15,9 +15,19 @@
 #define CYN  "\x1B[36m"
 #define WHT  "\x1B[37m"
 
+static void printHTML    (char *value);
+static void processEntry (xmlTextReaderPtr reader);
+static void streamFile   ();
+
+void parse () {
+  streamFile();
+
+  xmlCleanupParser();
+  xmlMemoryDump();
+}
 
 /* Parse HTML in description */
-static void parseHTML(char *value) {
+static void printHTML (char *value) {
   int i;
   char str[strlen(value)];
   strcpy(str, value);
@@ -118,7 +128,7 @@ static void processEntry (xmlTextReaderPtr reader) {
       if (flags.color) {
         printf(NRM);
       }
-      parseHTML((char *) value);
+      printHTML((char *) value);
     } 
     xmlTextReaderRead(reader);
 
@@ -161,9 +171,3 @@ static void streamFile () {
   }
 }
 
-void parse () {
-  streamFile();
-
-  xmlCleanupParser();
-  xmlMemoryDump();
-}
