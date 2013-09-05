@@ -1,9 +1,9 @@
 #include <string.h>
+#include <ctype.h>
 #include <sys/ioctl.h>
 #include <libxml/xmlreader.h>
+#include <sys/ioctl.h>
 #include "shared.h"
-
-#define MAX_LEN 40
 
 #define NRM  "\x1B[0m"
 #define BLK  "\x1B[30m"
@@ -18,6 +18,9 @@
 static void printHTML    (char *value);
 static void processEntry (xmlTextReaderPtr reader);
 static void streamFile   ();
+static void wrapper      (char *buf, char *text, int *buf_sz, int *buf_len,
+                          int incr, unsigned short real_sz);
+static void makeNull     (char *s, int len);
 
 void parse () {
   streamFile();
@@ -26,63 +29,165 @@ void parse () {
   xmlMemoryDump();
 }
 
+static void makeNull (char *s, int len) {
+  int i;
+
+  for (i = 0; i < len; i++) {
+    s[i] = '\0';
+  }
+}
+
 /* Parse HTML in description */
 static void printHTML (char *value) {
   int i;
+  int j;
   char str[strlen(value)];
   strcpy(str, value);
   char *tok;
   char *ptr;
   char *link;
+  
+  struct winsize term;
+  ioctl(1, TIOCGWINSZ, &term);    // 1 == stdout
+  int  buf_sz = ++term.ws_col;  // '\0' accounted for
+  int  buf_len = 0;
+  char *buf = (char *) malloc(buf_sz);
+  makeNull(buf, buf_sz);
+  int  max_word_len = 30;
+  char word[max_word_len];
+  for (j = 0; j < max_word_len; j++) // null the string to avoid a bug
+    word[j] = '\0';
 
   for (i = 0; i < strlen(value); i++) {
     if (value[i] == '<') {  // Find HTML tags
       tok = strtok(str + i, "<>");
       if (!strcmp(tok, "/p")) {
-        printf("\n");
+        printf("%s\n", buf);
+        buf_len = 0;
+        makeNull(buf, buf_sz);
       }
+
       else if (!strcmp(tok, "code") && flags.color) {
-        fputs(GRN, stdout);
+        if (flags.wrap)
+          wrapper(buf, GRN, &buf_sz, &buf_len, 0, term.ws_col);
+
+        else 
+          printf("%s", GRN);
       }
+
       else if (!strcmp(tok, "/code") && flags.color) {
-        fputs(NRM, stdout);
+        if (flags.wrap)
+          wrapper(buf, NRM, &buf_sz, &buf_len, 0, term.ws_col);
+
+        else
+         printf("%s", NRM);
       }
-      else if (!strcmp(tok, "li")) {
-        fputs("\t", stdout);
-      }
-      else if ((ptr = strstr(tok, "/a"))) {
-        if (link) {
-          link[strlen(link) - 1] = '\0';
-          if (flags.color) {
-            printf(CYN " <%s>" NRM, link);
-          }
-          else {
-            printf(" <%s>" , link);
-          }
+      
+      else if (!strcmp(tok, "li"))
+        printf("\t");
+      
+      else if ((ptr = strstr(tok, "/a")) && link) {
+        if (flags.wrap && flags.color) {
+          wrapper(buf, CYN, &buf_sz, &buf_len, 0, term.ws_col);
+          wrapper(buf, " <", &buf_sz, &buf_len, 1, term.ws_col);
+          wrapper(buf, link, &buf_sz, &buf_len, 1, term.ws_col);
+          wrapper(buf, ">", &buf_sz, &buf_len, 1, term.ws_col);
+          wrapper(buf, NRM, &buf_sz, &buf_len, 0, term.ws_col);
         }
+
+        else if (flags.color)
+          printf(" %s<%s>%s", CYN, link, NRM);
+        
+        else
+          printf(" <%s>" , link);
       }
       else if ((link = strstr(tok, "http"))) {
-        // Do nothing.
-        // Only want to test for a link if the other tests failed
-        // hence the "else if"
+        link[strlen(link) - 1] = '\0';  // remove ending quotation mark
       }
       i += strlen(tok) + 1;
     }
 
     else if (value[i] == '&') { // Find HTML numbers
-      if (strstr(value + i, "&gt;")) {
+      if (strstr(value + i, "&gt;"))
         printf(">");
-      }
-      else if (strstr(value + i, "&lt;")) {
+
+      else if (strstr(value + i, "&lt;"))
         printf("<");
-      }
+
       i += strlen(tok) - 1;
     }
+
     else {
-      printf("%c", value[i]);
+      if (value[i] == '>') continue;  // ignore end of HTML tag
+
+      if (flags.wrap) { // find word
+        while (!ispunct(value[i]) && !isspace(value[i])) {
+          word[strlen(word)] = value[i];
+          word[strlen(word) + 1] = '\0';
+          i++;
+        }
+
+        // This if-else prevents accidentally printing HTML tags
+        if (value[i] == '<') i--;
+        else
+          word[strlen(word)] = value[i];
+
+        wrapper(buf, word, &buf_sz, &buf_len, 1, term.ws_col);
+        
+        // reset word string so it can be reused
+        makeNull(word, max_word_len);
+      }
+
+      else {
+        printf("%c", value[i]);
+        if (value[i] == '\n') { // extraneous if?
+          buf_len = 0;
+          makeNull(buf, buf_sz);
+        }
+      }
     }
   }
-  fputs("\n", stdout);
+
+  printf("%s\n", buf);
+  free(buf);
+}
+
+// REWRITE COMMENT
+/* Wraps output without splitting words                                    */
+/* buf_sz is the maximum length of buf and buf_len is the urrent length of */
+/* buf. incr specifies whether buf_len should be incremented (should be    */
+/* used when text is something that is not printed, such as a color code). */
+/* If incr is zero, buf_sz is reallocated to make space for the            */
+/* non-printed string. One is returned when the function prints, and zero  */
+/* is returned otherwise. If one is returned, buf_sz should be reset.      */
+/* IS REALLOCATING NECESSARY? */
+/* RESETTING buf_sz SHOULD HAPPEN HERE */
+static void wrapper (char *buf, char *text, int *buf_sz, int *buf_len,
+                    int resize, unsigned short real_sz) {
+  int i;
+  int j;
+
+  /*if (resize) {
+    *buf_sz += strlen(text);
+    buf = (char *) realloc(buf, *buf_sz);
+  }
+  else*/
+    *buf_len += strlen(text);
+
+  if (*buf_len < real_sz) {
+    //strcat(buf, text);
+    for (i = *buf_len - strlen(text), j = 0; i < *buf_len; i++, j++)
+      buf[i] = text[j];
+    buf[i] = '\0';
+  }
+
+  else {
+    printf("%s\n", buf);
+    *buf_len = strlen(text);
+    strcpy(buf, text);
+    *buf_sz = real_sz;
+    buf = (char *) realloc(buf, *buf_sz);
+  }
 }
 
 /* Get information about the current entry. */
@@ -102,32 +207,31 @@ static void processEntry (xmlTextReaderPtr reader) {
 
   for (i = 0; i < numNodes; i++) {
     while (strcmp((char *) name, nodes[i]) != 0) {
-      if (!xmlTextReaderRead(reader)) {
+      if (!xmlTextReaderRead(reader))
         return;
-      };
+
       name = xmlTextReaderConstName(reader);
     }
     xmlTextReaderRead(reader);
     value = xmlTextReaderConstValue(reader);
     if (!strcmp(nodes[i], nodes[0])) {
-      if (flags.color) { 
+      if (flags.color)
         printf(YEL "%s\n", value);
-      }
-      else {
+      
+      else
         printf("%s\n", value);
-      }
     }
     else if (!strcmp(nodes[i], nodes[1])) {
-      if (flags.color) {
-      }
-      else {
+      if (flags.color)
+        printf("%s%s%s\n", CYN, value, NRM);
+      
+      else
         printf("%s\n", value);
-      }
     }
     else if (!strcmp(nodes[i], nodes[2])) {
-      if (flags.color) {
-        printf(NRM);
-      }
+      if (flags.color)
+        printf("%s", NRM);
+
       printHTML((char *) value);
     } 
     xmlTextReaderRead(reader);
@@ -170,4 +274,3 @@ static void streamFile () {
     fprintf(stderr, "Unable to open %s\n", flags.outfilename);
   }
 }
-
