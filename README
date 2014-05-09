@@ -50,6 +50,3 @@ Usage: ./archfeed [OPTION]
 
 This code is pretty limited right now. The URL is hardcoded to:
   https://www.archlinux.org/feeds/news/
-
-I'm sure there is a good amount of mistakes (this is my first project after
-all).
