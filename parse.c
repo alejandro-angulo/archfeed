@@ -19,7 +19,7 @@ static void printHTML    (char *value);
 static void processEntry (xmlTextReaderPtr reader);
 static void streamFile   ();
 static void wrapper      (char *buf, char *text, int *buf_sz, int *buf_len,
-                          int incr, unsigned short real_sz);
+                          unsigned short real_sz);
 static void makeNull     (char *s, int len);
 
 void parse () {
@@ -69,7 +69,7 @@ static void printHTML (char *value) {
 
       else if (!strcmp(tok, "code") && flags.color) {
         if (flags.wrap)
-          wrapper(buf, GRN, &buf_sz, &buf_len, 0, term.ws_col);
+          wrapper(buf, GRN, &buf_sz, &buf_len, term.ws_col);
 
         else 
           printf("%s", GRN);
@@ -77,7 +77,7 @@ static void printHTML (char *value) {
 
       else if (!strcmp(tok, "/code") && flags.color) {
         if (flags.wrap)
-          wrapper(buf, NRM, &buf_sz, &buf_len, 0, term.ws_col);
+          wrapper(buf, NRM, &buf_sz, &buf_len, term.ws_col);
 
         else
          printf("%s", NRM);
@@ -88,18 +88,18 @@ static void printHTML (char *value) {
       
       else if ((ptr = strstr(tok, "/a")) && link) {
         if (flags.wrap && flags.color) {
-          wrapper(buf, CYN, &buf_sz, &buf_len, 0, term.ws_col);
-          wrapper(buf, " <", &buf_sz, &buf_len, 1, term.ws_col);
-          wrapper(buf, link, &buf_sz, &buf_len, 1, term.ws_col);
-          wrapper(buf, ">", &buf_sz, &buf_len, 1, term.ws_col);
-          wrapper(buf, NRM, &buf_sz, &buf_len, 0, term.ws_col);
+          wrapper(buf, CYN, &buf_sz, &buf_len, term.ws_col);
+          wrapper(buf, " <", &buf_sz, &buf_len, term.ws_col);
+          wrapper(buf, link, &buf_sz, &buf_len, term.ws_col);
+          wrapper(buf, ">", &buf_sz, &buf_len, term.ws_col);
+          wrapper(buf, NRM, &buf_sz, &buf_len, term.ws_col);
         }
 
         else if (flags.color)
           printf(" %s<%s>%s", CYN, link, NRM);
         
         else
-          printf(" <%s>" , link);
+          printf(" <%s> " , link);
       }
       else if ((link = strstr(tok, "http"))) {
         link[strlen(link) - 1] = '\0';  // remove ending quotation mark
@@ -132,7 +132,7 @@ static void printHTML (char *value) {
         else
           word[strlen(word)] = value[i];
 
-        wrapper(buf, word, &buf_sz, &buf_len, 1, term.ws_col);
+        wrapper(buf, word, &buf_sz, &buf_len, term.ws_col);
         
         // reset word string so it can be reused
         makeNull(word, max_word_len);
@@ -154,8 +154,8 @@ static void printHTML (char *value) {
 
 // REWRITE COMMENT
 /* Wraps output without splitting words                                    */
-/* buf_sz is the maximum length of buf and buf_len is the urrent length of */
-/* buf. incr specifies whether buf_len should be incremented (should be    */
+/* buf_sz is the maximum length of buf and buf_len is the current length   */
+/* of buf. incr specifies whether buf_len should be incremented (should be */
 /* used when text is something that is not printed, such as a color code). */
 /* If incr is zero, buf_sz is reallocated to make space for the            */
 /* non-printed string. One is returned when the function prints, and zero  */
@@ -163,19 +163,13 @@ static void printHTML (char *value) {
 /* IS REALLOCATING NECESSARY? */
 /* RESETTING buf_sz SHOULD HAPPEN HERE */
 static void wrapper (char *buf, char *text, int *buf_sz, int *buf_len,
-                    int resize, unsigned short real_sz) {
+                    unsigned short real_sz) {
   int i;
   int j;
 
-  /*if (resize) {
-    *buf_sz += strlen(text);
-    buf = (char *) realloc(buf, *buf_sz);
-  }
-  else*/
-    *buf_len += strlen(text);
+  *buf_len += strlen(text);
 
-  if (*buf_len < real_sz) {
-    //strcat(buf, text);
+  if (*buf_len < *buf_sz) {
     for (i = *buf_len - strlen(text), j = 0; i < *buf_len; i++, j++)
       buf[i] = text[j];
     buf[i] = '\0';
@@ -185,7 +179,7 @@ static void wrapper (char *buf, char *text, int *buf_sz, int *buf_len,
     printf("%s\n", buf);
     *buf_len = strlen(text);
     strcpy(buf, text);
-    *buf_sz = real_sz;
+    *buf_sz = *buf_sz;
     buf = (char *) realloc(buf, *buf_sz);
   }
 }
@@ -271,6 +265,7 @@ static void streamFile () {
     }
   }
   else {
+    printf("%s\n", flags.outfilename);
     fprintf(stderr, "Unable to open %s\n", flags.outfilename);
   }
 }

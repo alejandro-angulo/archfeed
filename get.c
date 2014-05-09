@@ -1,4 +1,5 @@
 #include <math.h>
+#include <unistd.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <sys/ioctl.h>
@@ -33,14 +34,16 @@ void download (const FILE *fp) {
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &prog);
-    curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, older_progress);
+    if (isatty(1)) {  // Only show progress if stdout is a terminal
+      curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, older_progress);
 
-    #if LIBCURL_VERSION_NUM >= 0x072000
-      curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo);
-      curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &prog);
-    #endif
+      #if LIBCURL_VERSION_NUM >= 0x072000
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &prog);
+      #endif
 
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+      curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    }
     curl_easy_setopt(curl ,CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
     
@@ -51,7 +54,7 @@ void download (const FILE *fp) {
 
   }
   else {
-    fputs("Failed to begin libcurl session.\n", stdout);
+    printf("Failed to begin libcurl session.\n");
   }
 }
 

@@ -18,8 +18,8 @@ static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
                                    void *user);
 static int comparison             (char *memory);
 
-/* Checks if a new entry was added since last update              */
-/* Compares lastBuildDate entry to timestamp on /var/cache/pacman */
+/* Checks if a new entry was added since last update      */
+/* Compares lastBuildDate entry to timestamp on CACHE_DIR */
 int check () {
   CURL *curl_handle;
   CURLcode res;
@@ -79,10 +79,12 @@ static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
   return realsize;
 }
 
-/* Compares timestamps of /var/cache/pacman and the news feed    */
-/* Returns zero if news feed is older than /var/cache/pacman     */
-/* Returns non-zero if /var/cache/pacman is older than news feed */
+/* Compares timestamps of CACHE_DIR and the news feed    */
+/* Returns zero if news feed is older than CACHE_DIR     */
+/* Returns non-zero if CACHE_DIR is older than news feed */
 static int comparison (char *memory) {
+  const char *CACHE_DIR = "/var/cache/pacman/pkg";
+  
   char *mod_str;
   char *ptr;
   struct stat cache;
@@ -98,14 +100,14 @@ static int comparison (char *memory) {
     exit(1);
   }
 
-  if (stat("/var/cache/pacman", &cache) == -1) {
+  if (stat(CACHE_DIR, &cache) == -1) {
     perror("Error");
+    printf("test\n");
     exit(1);
   }
 
-  if (news_time > cache.st_mtime) {
+  if (news_time > cache.st_mtime)
     return 1;
-  }
 
   return 0;
 }

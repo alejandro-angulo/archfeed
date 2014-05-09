@@ -6,6 +6,7 @@ archfeed
 
 # Backups #
 *.swp
+*.bak
 
 # Misc #
 news

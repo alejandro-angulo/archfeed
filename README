@@ -14,13 +14,16 @@ Usage: ./archfeed [OPTION]
 
 -f --file [FILE]
 	specify download location
-	  default location is ./news
+	  default location is /var/cache/archfeed/newss
 
 -l --local
 	do not download news (use local copy)
 
 -n --nocolor
 	do not colorize output
+
+-r --nowrap
+	do not wrap output
 	  set when STDOUT is detected as not being a terminal
 
 -o --force
@@ -35,6 +38,10 @@ Usage: ./archfeed [OPTION]
 
 -v --verbose
 	print news (default)
+
+-w --wrap
+	wrapoutput
+	  set when STDOUT is detected as being a terminal
 
 -h --help
 	display this message and exit
