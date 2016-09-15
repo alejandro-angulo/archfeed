@@ -260,10 +260,10 @@ void printEntry (entry contents) {
 
   printf(NRM);
 
-  // free(contents.title);
-  // free(contents.link);
-  // free(contents.description);
-  // free(contents.pubDate);
+  free(contents.title);
+  free(contents.link);
+  free(contents.description);
+  free(contents.pubDate);
 }
 
 /* Parse and print information about an XML file. */
