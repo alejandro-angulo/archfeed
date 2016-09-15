@@ -15,12 +15,20 @@
 #define CYN  "\x1B[36m"
 #define WHT  "\x1B[37m"
 
-static void printHTML    (char *value);
-static void processEntry (xmlTextReaderPtr reader);
-static void streamFile   ();
-static void wrapper      (char *buf, char *text, int *buf_sz, int *buf_len,
+typedef struct {
+  xmlChar *title;
+  xmlChar *link;
+  xmlChar *description;
+  xmlChar *pubDate;
+} entry;
+
+static void  printHTML    (char *value);
+       entry processEntry (xmlTextReaderPtr reader);
+       void  printEntry   (entry);
+static void  streamFile   ();
+static void  wrapper      (char *buf, char *text, int *buf_sz, int *buf_len,
                           unsigned short real_sz);
-static void makeNull     (char *s, int len);
+static void  makeNull     (char *s, int len);
 
 void parse () {
   streamFile();
@@ -46,7 +54,7 @@ static void printHTML (char *value) {
   char *tok;
   char *ptr;
   char *link;
-  
+
   struct winsize term;
   ioctl(1, TIOCGWINSZ, &term);    // 1 == stdout
   int  buf_sz = ++term.ws_col;  // '\0' accounted for
@@ -71,7 +79,7 @@ static void printHTML (char *value) {
         if (flags.wrap)
           wrapper(buf, GRN, &buf_sz, &buf_len, term.ws_col);
 
-        else 
+        else
           printf("%s", GRN);
       }
 
@@ -82,10 +90,10 @@ static void printHTML (char *value) {
         else
          printf("%s", NRM);
       }
-      
+
       else if (!strcmp(tok, "li"))
         printf("\t");
-      
+
       else if ((ptr = strstr(tok, "/a")) && link) {
         if (flags.wrap && flags.color) {
           wrapper(buf, CYN, &buf_sz, &buf_len, term.ws_col);
@@ -97,7 +105,7 @@ static void printHTML (char *value) {
 
         else if (flags.color)
           printf(" %s<%s>%s", CYN, link, NRM);
-        
+
         else
           printf(" <%s> " , link);
       }
@@ -133,7 +141,7 @@ static void printHTML (char *value) {
           word[strlen(word)] = value[i];
 
         wrapper(buf, word, &buf_sz, &buf_len, term.ws_col);
-        
+
         // reset word string so it can be reused
         makeNull(word, max_word_len);
       }
@@ -185,80 +193,113 @@ static void wrapper (char *buf, char *text, int *buf_sz, int *buf_len,
 }
 
 /* Get information about the current entry. */
-static void processEntry (xmlTextReaderPtr reader) {
+entry processEntry (xmlTextReaderPtr reader) {
   const xmlChar *name, *value;
+  entry contents;
   int  i;
-  int  numNodes = 3;
+  int  numNodes = 6;
   char nodes[numNodes][25];
   strcpy(nodes[0], "title");
   strcpy(nodes[1], "link");
   strcpy(nodes[2], "description");
+  strcpy(nodes[3], "dc:creator");
+  strcpy(nodes[4], "pubDate");
+  strcpy(nodes[5], "guid");
 
   name = xmlTextReaderConstName(reader);
   if (name == NULL) {
     name = BAD_CAST "--";
   }
 
-  for (i = 0; i < numNodes; i++) {
+  for (i = 0; i < numNodes; ++i) {
     while (strcmp((char *) name, nodes[i]) != 0) {
-      if (!xmlTextReaderRead(reader))
-        return;
-
+      xmlTextReaderRead(reader);
       name = xmlTextReaderConstName(reader);
     }
+
     xmlTextReaderRead(reader);
     value = xmlTextReaderConstValue(reader);
-    if (!strcmp(nodes[i], nodes[0])) {
-      if (flags.color)
-        printf(YEL "%s\n", value);
-      
-      else
-        printf("%s\n", value);
+    if (!strcmp(nodes[i], "title")) {
+      contents.title = malloc( strlen((char *) value) + 1);
+      memcpy(contents.title, value, strlen( (char *) value) + 1);
     }
-    else if (!strcmp(nodes[i], nodes[1])) {
-      if (flags.color)
-        printf("%s%s%s\n", CYN, value, NRM);
-      
-      else
-        printf("%s\n", value);
+    else if (!strcmp(nodes[i], "link")) {
+      contents.link = malloc( strlen((char *) value) + 1);
+      memcpy(contents.link, value, strlen( (char *) value) + 1);
     }
-    else if (!strcmp(nodes[i], nodes[2])) {
-      if (flags.color)
-        printf("%s", NRM);
-
-      printHTML((char *) value);
-    } 
+    else if (!strcmp(nodes[i], "description")) {
+      contents.description = malloc( strlen((char *) value) + 1);
+      memcpy(contents.description, value, strlen( (char *) value) + 1);
+    }
+    else if (!strcmp(nodes[i], "pubDate")) {
+      contents.pubDate = malloc( strlen((char *) value) + 1);
+      memcpy(contents.pubDate, value, strlen( (char *) value) + 1);
+    }
     xmlTextReaderRead(reader);
-
   }
+
+  // printf("%s\n", contents.title);
+  return contents;
+}
+
+void printEntry (entry contents) {
+  if (flags.color) {
+    printf(YEL "%s\n", contents.title);
+    printf(MAG "%s\n", contents.pubDate);
+    printf(CYN "%s\n", contents.link);
+    printf(NRM);
+    printHTML((char *) contents.description);
+  }
+
+  else {
+    printf("%s\n", contents.title);
+    printf("%s\n", contents.pubDate);
+    printf("%s\n", contents.link);
+    printHTML((char *) contents.description);
+  }
+
+  printf(NRM);
+
+  // free(contents.title);
+  // free(contents.link);
+  // free(contents.description);
+  // free(contents.pubDate);
 }
 
 /* Parse and print information about an XML file. */
 static void streamFile () {
   xmlTextReaderPtr reader;
   int ret;
+  entry contents;
   unsigned short i = 0;  // entries counter
 
   reader = xmlReaderForFile(flags.outfilename, NULL, 0);
   if (reader != NULL) {
     ret = xmlTextReaderRead(reader);
-    
-    if (flags.entries) {  // there's probably a better way
+
+    if (flags.entries) {
       while (ret == 1 && i < flags.entries) {
-        processEntry(reader);
+        contents = processEntry(reader);
+        printEntry(contents);
         ret = xmlTextReaderRead(reader);
         i++;
       }
     }
     else {
       while (ret == 1) {
-        processEntry(reader);
+        // printf( "%s\n", xmlTextReaderConstName(reader) );
+        // printf("%d\n", strcmp("item", xmlTextReaderConstName(reader)));
+        if ( strcmp("item", (char *)xmlTextReaderConstName(reader)) == 0 ) {
+          contents = processEntry(reader);
+          printEntry(contents);
+          xmlTextReaderRead(reader);
+        }
         ret = xmlTextReaderRead(reader);
       }
     }
-    
+
     xmlFreeTextReader(reader);
-    
+
     if (ret == -1) {  // if error encountered
       printf("%d\n", ret);
       fprintf(stderr, "%s : failed to parse\n", flags.outfilename);
