@@ -14,7 +14,7 @@ Usage: ./archfeed [OPTION]
 
 -f --file [FILE]
 	specify download location
-	  default location is /var/cache/archfeed/newss
+	  default location is ~/.cache/archfeed/newss
 
 -l --local
 	do not download news (use local copy)

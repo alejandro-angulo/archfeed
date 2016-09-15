@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <pwd.h>
 #include "get.h"
 #include "parse.h"
 #include "check.h"
@@ -14,56 +17,56 @@ static void print_help (char *program) {
 
   printf("-b --brief\n");
   printf("\tdo not print news\n\n");
-  
+
   printf("-c --color\n");
   printf("\tcolorize output\n");
   printf("\t  set when STDOUT detected as being a terminal\n\n");
-  
+
   printf("-d --display [INTEGER]\n");
   printf("\tspecify number of entries to display (newest first)\n");
   printf("\t  use 0 to display all entries (default)\n");
   printf("\t  use -b if you do not want to display any entries\n\n");
-  
+
   printf("-e --new\n");
   printf("\tonly print new messages\n\n");
-  
+
   printf("-f --file [FILE]\n");
   printf("\tspecify download location\n");
-  printf("\t  default location is /var/cache/archfeed/newss\n\n");
-  
+  printf("\t  default location is ~/.cache/archfeed/newss\n\n");
+
   printf("-l --local\n");
   printf("\tdo not download news (use local copy)\n\n");
-  
+
   printf("-n --nocolor\n");
   printf("\tdo not colorize output\n\n");
-  
+
   printf("-r --nowrap\n");
   printf("\tdo not wrap output\n");
   printf("\t  set when STDOUT is detected as not being a terminal\n\n");
-  
+
   printf("-o --force\n");
   printf("\trun program without checking for new entries\n\n");
-  
+
   printf("-p --poll\n");
   printf("\tissue header request and compare timestamps before proceeding\n");
   printf("\t  program exits if there are no new entries (default)\n\n");
 
   printf("-s -skip\n");
   printf("\tskips first n entries\n\n");
-  
+
   printf("-u --update\n");
   printf("\tdownload news (default)\n\n");
-  
+
   printf("-v --verbose\n");
   printf("\tprint news (default)\n\n");
-  
+
   printf("-w --wrap\n");
-  printf("\twrapoutput\n");
+  printf("\twrap output\n");
   printf("\t  set when STDOUT is detected as being a terminal\n\n");
-  
+
   printf("-h --help\n");
   printf("\tdisplay this message and exit\n");
-  
+
   exit(1);
 }
 
@@ -71,15 +74,19 @@ args flags; // initialize global struct to hold flags
 
 int main (int argc, char *argv[]) {
   FILE *fp;
-  
+
+  // Get cache directory
+  struct passwd *pw = getpwuid( getuid() );
+  char *cache = pw->pw_dir;
+  strcpy(flags.outfilename, strcat(cache, "/.cache/archfeed") );
+
   // Assign default values for flags
   flags.entries = 0;
   flags.newest  = 0;
   flags.poll    = 1;
   flags.update  = 1;
   flags.verbose = 1;
-  strcpy(flags.outfilename, "/var/cache/archfeed/news");
-  
+
   /* Command line arguments */
   // Check if output is a terminal
   // Set flags accordingly
@@ -99,22 +106,22 @@ int main (int argc, char *argv[]) {
     struct option long_opts[] =
       {
         // {name, has_arg, flag, val};
-        {"brief",   0, &flags.verbose,   0},  // -b 
-        {"colorize",0, &flags.color  ,   1},  // -c
-        {"display", 1, 0             , 'd'},  // -d
-        {"file",    1, 0             , 'f'},  // -f
-        {"force",   0, &flags.poll   ,   0},  // -o
-        {"help",    0, 0             , 'h'},  // -h
-        {"local",   0, &flags.update ,   0},  // -l
-        {"newest",  0, &flags.newest , 'e'},  // -e
-        {"poll",    0, &flags.poll   ,   1},  // -p
-        {"nocolor", 0, &flags.color  ,   0},  // -n
-        {"nowrap",  0, &flags.wrap   ,   0},  // -r
-        {"update",  0, &flags.update ,   1},  // -o
-        {"verbose", 0, &flags.verbose,   1},  // -v
-        {"wrap",    0, &flags.wrap   ,   1},  // -w
+        {"brief"   , 0, &flags.verbose,   0},  // -b
+        {"colorize", 0, &flags.color  ,   1},  // -c
+        {"display" , 1, 0             , 'd'},  // -d
+        {"file"    , 1, 0             , 'f'},  // -f
+        {"force"   , 0, &flags.poll   ,   0},  // -o
+        {"help"    , 0, 0             , 'h'},  // -h
+        {"local"   , 0, &flags.update ,   0},  // -l
+        {"newest"  , 0, &flags.newest , 'e'},  // -e
+        {"poll"    , 0, &flags.poll   ,   1},  // -p
+        {"nocolor" , 0, &flags.color  ,   0},  // -n
+        {"nowrap"  , 0, &flags.wrap   ,   0},  // -r
+        {"update"  , 0, &flags.update ,   1},  // -o
+        {"verbose" , 0, &flags.verbose,   1},  // -v
+        {"wrap"    , 0, &flags.wrap   ,   1},  // -w
       };
-    
+
     opt = getopt_long (argc, argv, "bcd:f:lnoprhvw", long_opts, &opt_index);
 
     if (opt == -1) {  // Done reading options.
@@ -138,7 +145,7 @@ int main (int argc, char *argv[]) {
         break;
       case 'd': // --display
         if (!(flags.entries =  (int) strtol(optarg, NULL, 10))) {
-          fprintf(stderr, "Failed to read display argument: %s\n", optarg); 
+          fprintf(stderr, "Failed to read display argument: %s\n", optarg);
           exit(1);
         }
         break;
@@ -199,7 +206,13 @@ int main (int argc, char *argv[]) {
     }
   }
 
-  if (flags.update) {  
+  if (flags.update) {
+    struct stat st;
+
+    if ( stat(cache, &st) == -1 ) {
+      fprintf(stdout, "%s\n",strerror( mkdir("cache", 0664))) ;
+    }
+
     fp = fopen(flags.outfilename, "w+b");
     if (fp == NULL) {
       perror("Error");
