@@ -40,7 +40,7 @@ Usage: ./archfeed [OPTION]
 	print news (default)
 
 -w --wrap
-	wrapoutput
+	wrap output
 	  set when STDOUT is detected as being a terminal
 
 -h --help
