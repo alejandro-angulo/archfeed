@@ -1,0 +1,52 @@
+Usage: `archfeed [OPTION]`
+
+`-b` `--brief` 	
+do not print news
+
+`-c` `--color`
+	colorize output
+set when STDOUT detected as being a terminal
+
+`-d` `--display [INTEGER]`
+specify number of entries to display (newest first) 	  use 0 to display all entries (default)
+use -b if you do
+not want to display any entries
+
+`-f` `--file [FILE]`
+specify download location
+default location is ~/.cache/archfeed/news
+
+`-l` `--local`
+do not download news (use local copy)
+
+`-n` `--nocolor`
+do not colorize output
+
+`-r` `--nowrap`
+do not wrap output
+set when STDOUT is detected as not being a terminal
+
+`-o` `--force`
+run program without checking for new entries
+
+`-p` `--poll`
+issue header request and compare timestamps before proceeding
+program exits if there are no new entries (default)
+
+`-u` `--update`
+download news (default)
+
+`-v` `--verbose`
+print news (default)
+
+`-w` `--wrap`
+wrap output
+set when STDOUT is detected as being a terminal
+
+`-h` `--help`
+display this message and exit
+
+-------------------------------------------------------------------------------
+
+This code is pretty limited right now. The URL is hardcoded to:
+  https://www.archlinux.org/feeds/news/

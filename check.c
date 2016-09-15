@@ -65,7 +65,7 @@ static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
   struct MemoryStruct *mem = (struct MemoryStruct *) userp;
 
   mem->memory = realloc(mem->memory, mem->size + realsize + 1);
-  
+
   // Out of Memory
   if (mem->memory == NULL) {
     fprintf(stderr, "Not enough memory (realloc failed).\n");
@@ -84,7 +84,7 @@ static size_t WriteMemoryCallback (void *contents, size_t size, size_t nmemb,
 /* Returns non-zero if CACHE_DIR is older than news feed */
 static int comparison (char *memory) {
   const char *CACHE_DIR = "/var/cache/pacman/pkg";
-  
+
   char *mod_str;
   char *ptr;
   struct stat cache;
@@ -94,7 +94,7 @@ static int comparison (char *memory) {
   mod_str = strstr(memory, "Last-Modified");
   ptr = strchr(mod_str, '\n');
   ptr[0] = '\0';
-  strptime(mod_str, "Last-Modified: %a, %d %b %Y %H:%M:%S GMT ", &news_mod); 
+  strptime(mod_str, "Last-Modified: %a, %d %b %Y %H:%M:%S GMT ", &news_mod);
   if ((news_time = mktime(&news_mod)) == -1) {
     perror("Error");
     exit(1);
@@ -111,4 +111,3 @@ static int comparison (char *memory) {
 
   return 0;
 }
-
