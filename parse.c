@@ -40,7 +40,7 @@ void parse () {
 static void makeNull (char *s, int len) {
   int i;
 
-  for (i = 0; i < len; i++) {
+  for (i = 0; i < len; ++i) {
     s[i] = '\0';
   }
 }
@@ -63,10 +63,10 @@ static void printHTML (char *value) {
   makeNull(buf, buf_sz);
   int  max_word_len = 30;
   char word[max_word_len];
-  for (j = 0; j < max_word_len; j++) // null the string to avoid a bug
+  for (j = 0; j < max_word_len; ++j) // null the string to avoid a bug
     word[j] = '\0';
 
-  for (i = 0; i < strlen(value); i++) {
+  for (i = 0; i < strlen(value); ++i) {
     if (value[i] == '<') {  // Find HTML tags
       tok = strtok(str + i, "<>");
       if (!strcmp(tok, "/p")) {
@@ -132,11 +132,11 @@ static void printHTML (char *value) {
         while (!ispunct(value[i]) && !isspace(value[i])) {
           word[strlen(word)] = value[i];
           word[strlen(word) + 1] = '\0';
-          i++;
+          ++i;
         }
 
         // This if-else prevents accidentally printing HTML tags
-        if (value[i] == '<') i--;
+        if (value[i] == '<') --i;
         else
           word[strlen(word)] = value[i];
 
@@ -178,7 +178,7 @@ static void wrapper (char *buf, char *text, int *buf_sz, int *buf_len,
   *buf_len += strlen(text);
 
   if (*buf_len < *buf_sz) {
-    for (i = *buf_len - strlen(text), j = 0; i < *buf_len; i++, j++)
+    for (i = *buf_len - strlen(text), j = 0; i < *buf_len; ++i, ++j)
       buf[i] = text[j];
     buf[i] = '\0';
   }
@@ -238,7 +238,6 @@ entry processEntry (xmlTextReaderPtr reader) {
     xmlTextReaderRead(reader);
   }
 
-  // printf("%s\n", contents.title);
   return contents;
 }
 
@@ -282,13 +281,11 @@ static void streamFile () {
         contents = processEntry(reader);
         printEntry(contents);
         ret = xmlTextReaderRead(reader);
-        i++;
+        ++i;
       }
     }
     else {
       while (ret == 1) {
-        // printf( "%s\n", xmlTextReaderConstName(reader) );
-        // printf("%d\n", strcmp("item", xmlTextReaderConstName(reader)));
         if ( strcmp("item", (char *)xmlTextReaderConstName(reader)) == 0 ) {
           contents = processEntry(reader);
           printEntry(contents);

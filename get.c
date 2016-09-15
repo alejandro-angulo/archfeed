@@ -25,7 +25,7 @@ void download (const FILE *fp) {
   struct myprogress prog;
   char *url = "https://www.archlinux.org/feeds/news/";
   curl = curl_easy_init();
-  
+
   if (curl) {
     fputs("Retreiving news...\n", stdout);
 
@@ -46,7 +46,7 @@ void download (const FILE *fp) {
     }
     curl_easy_setopt(curl ,CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-    
+
     if ((res = curl_easy_perform(curl)))
       printf("%s\n", curl_easy_strerror(res));
     else
@@ -86,10 +86,10 @@ static int xferinfo (void *ptr,
 
   printf("%3.0f%% [", frac_down * 100);
 
-  for (i = 0; i < bar_full; i++)
+  for (i = 0; i < bar_full; ++i)
     printf("=");
 
-  for ( ; i < bar_len; i++)
+  for ( ; i < bar_len; ++i)
     printf(" ");
 
   printf("]\r");
@@ -114,4 +114,3 @@ static size_t write_data (void *ptr, size_t size, size_t nmemb, FILE *stream) {
   size_t written = fwrite(ptr, size, nmemb, stream);
   return written;
 }
-
