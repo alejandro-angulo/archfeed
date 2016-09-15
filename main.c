@@ -212,7 +212,6 @@ int main (int argc, char *argv[]) {
     if ( stat(cache, &st) == -1 ) {
       fprintf(stdout, "%s\n",strerror( mkdir("cache", 0664))) ;
     }
-
     fp = fopen(flags.outfilename, "w+b");
     if (fp == NULL) {
       perror("Error");
